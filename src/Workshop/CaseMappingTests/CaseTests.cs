@@ -1,4 +1,5 @@
-﻿using Shouldly;
+﻿using System.Collections.Generic;
+using Shouldly;
 using Xunit;
 
 namespace CaseMappingTests
@@ -12,6 +13,48 @@ namespace CaseMappingTests
             _target = new CaseMapperService();
         }
 
+        [Fact]
+        public void CreateMapping_WithNullFinancialsField_ReturnsNull()
+        {
+            // Arrange
+            var inputCase = new Case
+            {
+                Reference = "reference",
+                Financials = null,
+                Person = new Person
+                {
+                    Name = "name"
+                }
+            };
+
+            // Act
+            var actual = _target.CreateMapping(inputCase);
+
+            // Assert
+            actual.ShouldBeNull();
+        }
+
+        [Fact]
+        public void CreateMapping_WithEmptyFinancialsField_ReturnsNull()
+        {
+            // Arrange
+            var inputCase = new Case
+            {
+                Reference = "reference",
+                Financials = new List<double>(),
+                Person = new Person
+                {
+                    Name = "name"
+                }
+            };
+
+            // Act
+            var actual = _target.CreateMapping(inputCase);
+
+            // Assert
+            actual.ShouldBeNull();
+        }
+
         [Theory]
         [InlineData("333-AAAA", null)]
         [InlineData("333-AAAA", "")]
@@ -20,7 +63,7 @@ namespace CaseMappingTests
         [InlineData(" ", "name")]
         [InlineData(null, "name")]
         [InlineData(null, null)]
-        public void CreateMapping_WithoutRequiredFields_ReturnsNull(string reference, string name)
+        public void CreateMapping_WithoutReferenceOrPersonName_ReturnsNull(string reference, string name)
         {
             // Arrange
             var inputCase = new Case
@@ -46,6 +89,7 @@ namespace CaseMappingTests
             var inputCase = new Case
             {
                 Reference = "333-AAAA",
+                Financials = new List<double> { 3.33, 2 },
                 Person = new Person
                 {
                     Name = "John Doe"
@@ -58,34 +102,26 @@ namespace CaseMappingTests
             // Assert
             actual.ShouldNotBeNull();
         }
-    }
 
-    public class Person
-    {
-        public string Name { get; set; }
-    }
-
-    public class CaseMapperService
-    {
-        public CaseModel CreateMapping(Case inputCase)
+        [Fact]
+        public void CreateMapping_WithAllRequiredFields_MapsAsExpected()
         {
-            if (string.IsNullOrWhiteSpace(inputCase.Reference) ||
-                string.IsNullOrWhiteSpace(inputCase.Person.Name))
+            // Arrange
+            var inputCase = new Case
             {
-                return null;
-            }
+                Reference = "333-AAAA",
+                Financials = new List<double> { 3.33, 2 },
+                Person = new Person
+                {
+                    Name = "John Doe"
+                }
+            };
 
-            return new CaseModel();
+            // Act
+            var actual = _target.CreateMapping(inputCase);
+
+            // Assert
+            actual.Reference.ShouldBe($"AP-{inputCase.Reference}");
         }
-    }
-
-    public class CaseModel
-    {
-    }
-
-    public class Case
-    {
-        public string Reference { get; set; }
-        public Person Person { get; set; }
     }
 }
